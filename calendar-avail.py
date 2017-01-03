@@ -20,6 +20,15 @@ def write_to_clipboard(output):
         'pbcopy', env={'LANG': 'en_US.UTF-8'}, stdin=subprocess.PIPE)
     process.communicate(output.encode('utf-8'))
 
+# calcs hour based on default_hours
+def hour_format(dt):
+    hour = 'now'
+    if default_hours == 24:
+        hour = dt.strftime('%H:%M')
+    else:
+        hour = dt.strftime('%I:%M %p')
+    return hour
+
 # Setup
 
 
@@ -27,6 +36,9 @@ local_user = getpass.getuser()
 
 # default timezone
 default_timezone = 'America/Toronto'
+
+# defaul hour setting (24 for 24h clock, 12 for 12hr clock and AM/PM)
+default_hours = 12
 
 # days after current date to include
 lookahead_day_count = 7
@@ -36,6 +48,12 @@ work_start_hour = 9
 
 # hour of start of work days (24h clock, in local time)
 work_end_hour = 17
+
+# minimum seconds of avail to report
+minimum_secs = 1800
+
+# only show Available streaks, not Busy streaks
+show_avail_only = True
 
 # Whether or not to include Saturday and Sunday
 skip_weekends = True
@@ -66,19 +84,19 @@ cursor = conn.cursor()
 
 if show_all_cal is True:
     cursor.execute('''select
-    	ZSTARTDATE,
-    	ZENDDATE,
-    	ZTIMEZONE,
-    	ZTITLE
+        ZSTARTDATE,
+        ZENDDATE,
+        ZTIMEZONE,
+        ZTITLE
         from ZCALENDARITEM
         where ZSTARTDATE > %s
         and ZENDDATE < %s''' % (query_start_seconds, query_end_seconds))
 else:
     cursor.execute('''select
-    	ZSTARTDATE,
-    	ZENDDATE,
-    	ZTIMEZONE,
-    	ZTITLE
+        ZSTARTDATE,
+        ZENDDATE,
+        ZTIMEZONE,
+        ZTITLE
         from ZCALENDARITEM
         where ZSTARTDATE > %s
         and ZENDDATE < %s
@@ -254,23 +272,22 @@ for d in lookahead_days:
                 temp_end_time = entry_time + datetime.timedelta(seconds=60)
             else:
                 # streak broken
-                basummary_text += str(start_of_streak_time.astimezone(
-                    pytz.timezone (default_timezone)))[11:16] + ' to ' + str(
-                        temp_end_time.astimezone(pytz.timezone (
-                                default_timezone)))[11:16] + ' - ' + temp_last_status
-                basummary_text += '\n'
+                # show Available. Show Busy only if flag is set. Don't show if streak is less than minimum_secs
+                if temp_last_status == 'Available' or show_avail_only == False:
+                        if (temp_end_time.astimezone(pytz.timezone (default_timezone))-start_of_streak_time.astimezone(pytz.timezone (default_timezone))).total_seconds() >= minimum_secs:
+                            basummary_text += hour_format(start_of_streak_time.astimezone(pytz.timezone (default_timezone))) + ' to ' + hour_format(temp_end_time.astimezone(pytz.timezone (default_timezone))) + ' - ' + temp_last_status
+                            basummary_text += '\n'
                 temp_last_status = entry_status
                 start_of_streak_time = entry_time
 
         # last item in list
         else:
-            temp_end_time = temp_end_time + datetime.timedelta(seconds=60)
-            basummary_text += str(
-                start_of_streak_time.astimezone(pytz.timezone (
-                    default_timezone)))[11:16] + ' to ' + str(
-                        temp_end_time.astimezone(pytz.timezone (
-                            default_timezone)))[11:16] + ' - ' + temp_last_status
-            basummary_text += '\n'
+            if temp_last_status == 'Available' or show_avail_only == False:
+                temp_end_time = temp_end_time + datetime.timedelta(seconds=60)
+                # show Available. Show Busy only if flag is set. Don't show if streak is less than minimum_secs
+                if (temp_end_time.astimezone(pytz.timezone (default_timezone))-start_of_streak_time.astimezone(pytz.timezone (default_timezone))).total_seconds() >= minimum_secs:
+                    basummary_text += hour_format(start_of_streak_time.astimezone(pytz.timezone (default_timezone))) + ' to ' + hour_format(temp_end_time.astimezone(pytz.timezone (default_timezone))) + ' - ' + temp_last_status
+                    basummary_text += '\n'
 
 # comment out one of the two lines below depending on whether the schedule
 # summary or busy/available summary shoudl be copied to the clipboard
