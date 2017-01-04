@@ -35,7 +35,7 @@ def hour_format(dt):
 local_user = getpass.getuser()
 
 # default timezone
-default_timezone = 'America/Toronto'
+default_timezone = 'America/Vancouver'
 
 # defaul hour setting (24 for 24h clock, 12 for 12hr clock and AM/PM)
 default_hours = 12
@@ -44,7 +44,7 @@ default_hours = 12
 lookahead_day_count = 7
 
 # hour of start of work days (24h clock, in local time)
-work_start_hour = 9
+work_start_hour = 8
 
 # hour of start of work days (24h clock, in local time)
 work_end_hour = 17
@@ -59,11 +59,11 @@ show_avail_only = True
 skip_weekends = True
 
 # show all calendars or only specified ones (see next setting)
-show_all_cal = True
+show_all_cal = False
 
 # string of calendar IDs in parens (only applies if show_all_cal is False)
 # calendar IDs can be identified by running "calendar-avail-listcals.py"
-cal_list = '(60)'
+cal_list = '(16)'
 
 
 
